@@ -31,4 +31,4 @@ COPY ${CONFIG_FILE} /etc/gobgp
 
 WORKDIR /go
 
-CMD /usr/local/bin/gobgpd -f /etc/gobgp/${CONFIG_FILE} -p > /etc/gobgp/log
+CMD ["/usr/local/bin/gobgpd", "-f", "/etc/gobgp/${CONFIG_FILE}", "-p"]
