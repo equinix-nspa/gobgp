@@ -7,7 +7,7 @@
 [[bmp-servers]]
   [bmp-servers.config]
     address = "gobmp"
-    port=5000 
+    port = 5000 
     route-monitoring-policy = "all"
     #statistics-timeout = 60
 

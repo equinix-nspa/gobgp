@@ -2,6 +2,7 @@
 
 # Use a minimal base image, e.g., Alpine Linux
 FROM alpine:latest
+
 # Use "--build-arg CONFIG_FILE=<new-value>" to overwrite the default value
 ARG CONFIG_FILE="config.ls.bmp.toml"
 
@@ -26,7 +27,7 @@ RUN cp /root/go/bin/gobgpd /usr/local/bin/
 EXPOSE 179
 
 RUN mkdir /etc/gobgp
-RUN echo "This is the config file: $CONFIG_FILE"
+COPY ${CONFIG_FILE} /etc/gobgp
 
 WORKDIR /go
 
