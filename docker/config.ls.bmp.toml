@@ -1,0 +1,22 @@
+# Config with a BMP monitoring client and BGP-LS enabled
+[global.config]
+  as = 64512  
+  router-id = "10.196.67.69"   
+  port = 179
+          
+[[bmp-servers]]
+  [bmp-servers.config]
+    address = "gobmp"
+    port=5000 
+    route-monitoring-policy = "all"
+    #statistics-timeout = 60
+
+[[neighbors]]
+  [neighbors.config]
+    neighbor-address = "10.196.67.183"
+  [neighbors.transport.config]
+    remote-port = 179
+    passive-mode = false
+  [[neighbors.afi-safis]]
+    [neighbors.afi-safis.config]
+      afi-safi-name = "ls"
