@@ -5,6 +5,8 @@ FROM alpine:latest
 
 # Use "--build-arg CONFIG_FILE=<new-value>" to overwrite the default value
 ARG CONFIG_FILE="config.ls.bmp.toml"
+# Use "--build-arg BRANCH=<new-value>" to overwrite the default value
+ARG BRANCH="reshad/bgp-ls-fixes-3.37.0"
 
 # Install necessary packages (e.g., git for cloning GoBGP source, if building from source)
 RUN apk add --no-cache git go
@@ -13,7 +15,7 @@ RUN apk add --no-cache git go
 WORKDIR /app
 
 # Clone the GoBGP repository
-RUN git clone https://github.com/equinix-nspa/gobgp.git -b reshad/bgp-ls-fixes-3.37.0
+RUN git clone https://github.com/equinix-nspa/gobgp.git -b ${BRANCH}
 
 # Build GoBGP from source
 WORKDIR /app/gobgp
@@ -27,8 +29,8 @@ RUN cp /root/go/bin/gobgpd /usr/local/bin/
 EXPOSE 179
 
 RUN mkdir /etc/gobgp
-COPY ${CONFIG_FILE} /etc/gobgp
+COPY ${CONFIG_FILE} /etc/gobgp/gobgp.conf
 
 WORKDIR /go
 
-CMD ["/usr/local/bin/gobgpd", "-f", "/etc/gobgp/${CONFIG_FILE}", "-p"]
+CMD ["/usr/local/bin/gobgpd", "-f", "/etc/gobgp/gobgp.conf", "-p"]
