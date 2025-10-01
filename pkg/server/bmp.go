@@ -111,14 +111,26 @@ func (b *bmpClient) tryConnect() *net.TCPConn {
 }
 
 func (b *bmpClient) Stop() {
+	b.s.logger.Debug("Stopping BMP client",
+		log.Fields{
+			"Topic": "bmp",
+			"Key":   b.host})
 	close(b.dead)
 }
 
 func (b *bmpClient) loop() {
+	var conn *net.TCPConn
+
 	for {
-		conn := b.tryConnect()
 		if conn == nil {
-			break
+			b.s.logger.Debug("Trying to connect to BMP",
+				log.Fields{
+					"Topic": "bmp",
+					"Key":   b.host})
+			conn = b.tryConnect()
+			if conn == nil {
+				break
+			}
 		}
 		atomic.StoreInt64(&b.uptime, time.Now().Unix())
 
@@ -255,6 +267,10 @@ func (b *bmpClient) loop() {
 						return false
 					}
 				case <-b.dead:
+					b.s.logger.Debug("BMP client received msg on 'dead' channel",
+						log.Fields{
+							"Topic": "bmp",
+							"Key":   b.host})
 					term := bmp.NewBMPTermination([]bmp.BMPTermTLVInterface{
 						bmp.NewBMPTermTLV16(bmp.BMP_TERM_TLV_TYPE_REASON, bmp.BMP_TERM_REASON_PERMANENTLY_ADMIN),
 					})
@@ -262,6 +278,7 @@ func (b *bmpClient) loop() {
 						return false
 					}
 					conn.Close()
+					conn = nil
 					return true
 				}
 			}
