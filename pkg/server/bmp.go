@@ -211,6 +211,10 @@ func (b *bmpClient) loop() {
 							for _, path := range pathList {
 								for _, u := range table.CreateUpdateMsgFromPaths([]*table.Path{path}) {
 									payload, _ := u.Serialize()
+									b.s.logger.Debug("BMP write path",
+										log.Fields{
+											"Topic": "bmp",
+											"Key":   b.host})
 									if err := write(bmpPeerRoute(bmp.BMP_PEER_TYPE_GLOBAL, msg.PostPolicy, 0, true, info, path.GetTimestamp().Unix(), payload)); err != nil {
 										return false
 									}
@@ -225,8 +229,13 @@ func (b *bmpClient) loop() {
 							AS:      b.s.bgpConfig.Global.Config.As,
 							ID:      net.ParseIP(b.s.bgpConfig.Global.Config.RouterId).To4(),
 						}
-						for _, p := range msg.PathList {
+						for i, p := range msg.PathList {
 							u := table.CreateUpdateMsgFromPaths([]*table.Path{p})[0]
+							b.s.logger.Debug("BMP write best-path",
+								log.Fields{
+									"Topic": "bmp",
+									"index": i,
+									"Key":   b.host})
 							if payload, err := u.Serialize(); err != nil {
 								return false
 							} else if err = write(bmpPeerRoute(bmp.BMP_PEER_TYPE_LOCAL_RIB, false, 0, true, info, p.GetTimestamp().Unix(), payload)); err != nil {
@@ -236,10 +245,18 @@ func (b *bmpClient) loop() {
 					case *watchEventPeer:
 						if msg.Type != PEER_EVENT_END_OF_INIT {
 							if msg.State == bgp.BGP_FSM_ESTABLISHED {
+								b.s.logger.Debug("BMP write peer-up",
+									log.Fields{
+										"Topic": "bmp",
+										"Key":   b.host})
 								if err := write(bmpPeerUp(msg, bmp.BMP_PEER_TYPE_GLOBAL, false, 0)); err != nil {
 									return false
 								}
 							} else if msg.Type != PEER_EVENT_INIT && msg.OldState == bgp.BGP_FSM_ESTABLISHED {
+								b.s.logger.Debug("BMP write peer-down",
+									log.Fields{
+										"Topic": "bmp",
+										"Key":   b.host})
 								if err := write(bmpPeerDown(msg, bmp.BMP_PEER_TYPE_GLOBAL, false, 0)); err != nil {
 									return false
 								}
@@ -251,6 +268,10 @@ func (b *bmpClient) loop() {
 							AS:      msg.PeerAS,
 							ID:      msg.PeerID,
 						}
+						b.s.logger.Debug("BMP write mirroring",
+							log.Fields{
+								"Topic": "bmp",
+								"Key":   b.host})
 						if err := write(bmpPeerRouteMirroring(bmp.BMP_PEER_TYPE_GLOBAL, 0, info, msg.Timestamp.Unix(), msg.Message)); err != nil {
 							return false
 						}
@@ -260,6 +281,10 @@ func (b *bmpClient) loop() {
 					b.s.ListPeer(context.Background(), &api.ListPeerRequest{EnableAdvertised: true},
 						func(peer *api.Peer) {
 							if err == nil && peer.State.SessionState == api.PeerState_ESTABLISHED {
+								b.s.logger.Debug("BMP write statistics",
+									log.Fields{
+										"Topic": "bmp",
+										"Key":   b.host})
 								err = write(bmpPeerStats(bmp.BMP_PEER_TYPE_GLOBAL, 0, time.Now().Unix(), peer))
 							}
 						})
@@ -274,6 +299,10 @@ func (b *bmpClient) loop() {
 					term := bmp.NewBMPTermination([]bmp.BMPTermTLVInterface{
 						bmp.NewBMPTermTLV16(bmp.BMP_TERM_TLV_TYPE_REASON, bmp.BMP_TERM_REASON_PERMANENTLY_ADMIN),
 					})
+					b.s.logger.Debug("BMP write termination",
+						log.Fields{
+							"Topic": "bmp",
+							"Key":   b.host})
 					if err := write(term); err != nil {
 						return false
 					}

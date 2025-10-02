@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/netip"
 	"reflect"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -891,6 +892,7 @@ func (s *BgpServer) notifyBestWatcher(best []*table.Path, multipath [][]*table.P
 	if len(m) > 0 {
 		w.Vrf = m
 	}
+	s.logStackTrace(fmt.Sprintf("notifyBestWatcher pathlist len:%d %+v", len(w.PathList), w))
 	s.notifyWatcher(watchEventTypeBestPath, w)
 }
 
@@ -1381,6 +1383,15 @@ func dstsToPaths(id string, as uint32, dsts []*table.Update) ([]*table.Path, []*
 		}
 	}
 	return bestList, oldList, mpathList
+}
+
+func (s *BgpServer) logStackTrace(msg string) {
+	// Create a buffer to hold the stack trace
+	buf := make([]byte, 1024)
+	n := runtime.Stack(buf, false) // true to include all goroutines
+	msg = fmt.Sprintf("Traceback %s", msg)
+	s.logger.Warn(msg, log.Fields{
+		"stack": string(buf[:n])})
 }
 
 func (s *BgpServer) propagateUpdateToNeighbors(rib *table.TableManager, source *peer, newPath *table.Path, dsts []*table.Update, needOld bool) {
@@ -4797,6 +4808,11 @@ func (s *BgpServer) watch(opts ...watchOption) (w *watcher) {
 		}
 
 		if w.opts.initBest && s.active() == nil {
+			e := watchEventBestPath{
+				PathList:      s.globalRib.GetBestPathList(table.GLOBAL_RIB_NAME, 0, nil),
+				MultiPathList: s.globalRib.GetBestMultiPathList(table.GLOBAL_RIB_NAME, nil),
+			}
+			s.logStackTrace(fmt.Sprintf("watch initbest pathlist len:%d %+v", len(e.PathList), e))
 			w.notify(&watchEventBestPath{
 				PathList:      s.globalRib.GetBestPathList(table.GLOBAL_RIB_NAME, 0, nil),
 				MultiPathList: s.globalRib.GetBestMultiPathList(table.GLOBAL_RIB_NAME, nil),
