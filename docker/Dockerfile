@@ -6,7 +6,7 @@ FROM alpine:latest
 # Use "--build-arg CONFIG_FILE=<new-value>" to overwrite the default value
 ARG CONFIG_FILE="config.ls.bmp.toml"
 # Use "--build-arg BRANCH=<new-value>" to overwrite the default value
-ARG BRANCH="reshad/bgp-ls-fixes-3.37.0"
+ARG BRANCH="sandeep-bmp-client-error"
 
 # Install necessary packages (e.g., git for cloning GoBGP source, if building from source)
 RUN apk add --no-cache git go
