@@ -230,14 +230,38 @@ func (b *bmpClient) loop() {
 							ID:      net.ParseIP(b.s.bgpConfig.Global.Config.RouterId).To4(),
 						}
 						for i, p := range msg.PathList {
-							u := table.CreateUpdateMsgFromPaths([]*table.Path{p})[0]
+							// Get messages array first and validate it's not empty
+							msgs := table.CreateUpdateMsgFromPaths([]*table.Path{p})
+
+							// Check if array is empty before accessing
+							if len(msgs) == 0 {
+								b.s.logger.Warn("BMP: skipping path, CreateUpdateMsgFromPaths returned no messages",
+									log.Fields{
+										"Topic": "bmp",
+										"index": i,
+										"Key":   b.host,
+										"Path":  p.String()})
+								continue
+							}
+
+							// Now safe to access first element
+							u := msgs[0]
+
 							b.s.logger.Debug("BMP write best-path",
 								log.Fields{
 									"Topic": "bmp",
 									"index": i,
 									"Key":   b.host})
+
+							// Handle serialization errors gracefully
 							if payload, err := u.Serialize(); err != nil {
-								return false
+								b.s.logger.Warn("BMP: failed to serialize update message",
+									log.Fields{
+										"Topic": "bmp",
+										"index": i,
+										"Key":   b.host,
+										"Error": err.Error()})
+								continue
 							} else if err = write(bmpPeerRoute(bmp.BMP_PEER_TYPE_LOCAL_RIB, false, 0, true, info, p.GetTimestamp().Unix(), payload)); err != nil {
 								return false
 							}
